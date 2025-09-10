@@ -1,47 +1,32 @@
-name: Gerenciador de Álbuns
+name: Discogs Album Scraper
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:  # permite rodar manualmente
 
 jobs:
-  build:
+  run-discogs-scraper:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        python-version: [3.10, 3.11, 3.12]
 
     steps:
     - name: Checkout do repositório
       uses: actions/checkout@v3
 
-    - name: Configurar Python ${{ matrix.python-version }}
+    - name: Configurar Python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.11"
 
-    - name: Instalar dependências - Metal Archives
+    - name: Instalar dependências
       run: |
         python -m pip install --upgrade pip
-        if [ -f "Estado da Arte/requirements.txt" ]; then pip install -r "Estado da Arte/requirements.txt"; fi
+        pip install -r "Estado da Arte/discogs_album_app/requirements.txt"
 
-    - name: Instalar dependências - Discogs
+    - name: Rodar Discogs Scraper
+      env:
+        DISCOGS_TOKEN: ${{ secrets.DISCOGS_TOKEN }}
       run: |
-        if [ -f "Estado da Arte/discogs_album_app/requirements.txt" ]; then pip install -r "Estado da Arte/discogs_album_app/requirements.txt"; fi
-
-    - name: Rodar scraper do Metal Archives
-      run: |
-        python "Estado da Arte/metal_archives_album_scraper.py" || echo "Script não executou"
-
-    - name: Rodar scraper do Discogs
-      run: |
-        python "Estado da Arte/discogs_album_app/discogs_album_scraper.py" || echo "Script não executou"
-    - name: Rodar scraper do Discogs
-  env:
-    DISCOGS_TOKEN: ${{ secrets.DISCOGS_TOKEN }}
-  run: |
-    python "Estado da Arte/discogs_album_app/discogs_album_scraper.py"
-
+        python "Estado da Arte/discogs_album_app/discogs_album_scraper.py"
