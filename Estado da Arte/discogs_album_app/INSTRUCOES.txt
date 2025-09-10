@@ -1,0 +1,20 @@
+INSTRUÇÕES PARA USO DO APP DE ÁLBUNS (DISCOGS)
+
+1. Instale as dependências:
+   Abra o terminal na pasta do projeto e execute:
+   pip install -r requirements.txt
+
+2. Gere seu token de acesso Discogs:
+   - Acesse: https://www.discogs.com/settings/developers
+   - Clique em "Generate new token" (você precisa estar logado)
+   - Copie o token gerado
+
+3. No arquivo discogs_album_scraper.py, cole seu token na linha:
+   DISCOGS_TOKEN = 'SEU_TOKEN_AQUI'
+
+4. Execute a interface gráfica:
+   python discogs_album_gui.py
+
+5. Preencha os campos (nome da banda, nome do álbum, ano) e clique no botão para buscar e preencher a planilha.
+
+Dúvidas? Consulte o README ou entre em contato com o desenvolvedor.
