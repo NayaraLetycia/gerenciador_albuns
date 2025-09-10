@@ -39,3 +39,9 @@ jobs:
     - name: Rodar scraper do Discogs
       run: |
         python "Estado da Arte/discogs_album_app/discogs_album_scraper.py" || echo "Script não executou"
+    - name: Rodar scraper do Discogs
+  env:
+    DISCOGS_TOKEN: ${{ secrets.DISCOGS_TOKEN }}
+  run: |
+    python "Estado da Arte/discogs_album_app/discogs_album_scraper.py"
+
