@@ -1,44 +1,73 @@
-import pandas as pd
-from datetime import datetime
 import os
+import pandas as pd
 import discogs_client
 from fuzzywuzzy import fuzz
 
-# Insira seu token Discogs abaixo
-DISCOGS_TOKEN = ''  # Exemplo: 'abc123...'
+# Token da variável de ambiente
+DISCOGS_TOKEN = os.getenv("DISCOGS_TOKEN")
+if not DISCOGS_TOKEN:
+    raise ValueError("Token do Discogs não encontrado! Configure DISCOGS_TOKEN.")
+
+# Cliente Discogs
 D = discogs_client.Client('DiscogsAlbumApp/1.0', user_token=DISCOGS_TOKEN)
 
-def preencher_planilha(banda_nome, album_nome, ano_album, arquivo_planilha='albuns.xlsx'):
-    results = D.search(album_nome, artist=banda_nome, type='release', year=ano_album)
+
+def buscar_album(banda_nome, album_nome, ano_album=None, formato=None):
+    # Busca no Discogs
+    results = D.search(album_nome, artist=banda_nome, type='release', year=ano_album, format=formato)
     releases = list(results)
+
     if not releases:
-        print('Nenhum álbum encontrado no Discogs!')
-        return
-    melhores = [r for r in releases if fuzz.token_set_ratio(r.title.lower(), album_nome.lower()) >= 80]
-    if not melhores:
-        melhores = releases
-    dados = []
-    for r in melhores:
-        r_data = r.data
-        registro = {
-            'Banda': banda_nome,
-            'Álbum': r.title,
-            'Ano': r.year if hasattr(r, 'year') else ano_album,
-            'Tipo': r_data.get('format', [''])[0] if 'format' in r_data else '',
-            'Data de inserção': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'Gênero': ', '.join(r_data.get('genre', [])),
-            'Estilos': ', '.join(r_data.get('style', [])),
-            'País': r_data.get('country', ''),
-            'Label': ', '.join(r_data.get('label', [])) if 'label' in r_data else '',
-            'Tracklist': '\n'.join([t.title for t in getattr(r, 'tracklist', [])])
-        }
-        dados.append(registro)
-    if not dados:
-        print('Nenhum dado válido encontrado!')
-        return
-    df = pd.DataFrame(dados)
+        print("Nenhum álbum encontrado!")
+        return None
+
+    # Mostrar opções
+    print("\nResultados encontrados:")
+    for i, r in enumerate(releases, 1):
+        print(f"[{i}] {r.title} - {r.year if hasattr(r, 'year') else 'Ano desconhecido'} - Formato: {r.formats}")
+
+    escolha = int(input("\nDigite o número do álbum que deseja cadastrar: ")) - 1
+    escolhido = releases[escolha]
+
+    # Pegar detalhes do release
+    release_data = D.release(escolhido.id)
+    preco_min = release_data.marketplace_stats.get("lowest_price", "N/A")
+    preco_max = release_data.marketplace_stats.get("highest_price", "N/A")
+
+    registro = {
+        "Banda": banda_nome,
+        "Álbum": escolhido.title,
+        "Ano": escolhido.year if hasattr(escolhido, "year") else ano_album,
+        "Formato": ", ".join(escolhido.formats) if hasattr(escolhido, "formats") else formato,
+        "Preço Mínimo": preco_min,
+        "Preço Máximo": preco_max,
+        "Imagem": escolhido.data.get("cover_image", "N/A")
+    }
+
+    print("\n📀 Confirme os dados a serem inseridos:")
+    for k, v in registro.items():
+        print(f"- {k}: {v}")
+
+    confirmar = input("\nDeseja salvar este álbum no Excel? (s/n): ").lower()
+    if confirmar == "s":
+        salvar_planilha(registro)
+        print("✅ Álbum salvo com sucesso!")
+    else:
+        print("❌ Operação cancelada.")
+
+
+def salvar_planilha(registro, arquivo_planilha="colecao_albuns.xlsx"):
+    df = pd.DataFrame([registro])
     if os.path.exists(arquivo_planilha):
-        df_antigo = pd.read_excel(arquivo_planilha)
-        df = pd.concat([df_antigo, df], ignore_index=True)
-    df.to_excel(arquivo_planilha, index=False)
-    print(f'{len(dados)} registro(s) inserido(s) na planilha {arquivo_planilha}!')
+        df.to_excel(arquivo_planilha, index=False, mode="a", header=False)
+    else:
+        df.to_excel(arquivo_planilha, index=False)
+
+
+if __name__ == "__main__":
+    banda = input("Digite o nome da banda: ")
+    album = input("Digite o nome do álbum: ")
+    ano = input("Digite o ano (opcional): ")
+    formato = input("Digite o formato (ex: CD, LP, Cassette): ")
+
+    buscar_album(banda, album, ano if ano else None, formato if formato else None)
