@@ -1,5 +1,8 @@
+
 name: Add collaborator + ensure prd environment
 #testando
+name: Add collaborator
+
 on:
   push:
 
@@ -39,4 +42,3 @@ jobs:
             -H "Authorization: Bearer $GH_TOKEN" \
             https://api.github.com/repos/$OWNER/$REPO/collaborators/$COLLAB \
             -d "{\"permission\":\"pull\"}"
-
