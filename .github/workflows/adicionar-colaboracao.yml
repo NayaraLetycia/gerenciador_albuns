@@ -4,7 +4,7 @@ jobs:
     steps:
       - name: Adicionar colaborador via API
         env:
-          GH_TOKEN: ${{ secrets.TESTE_API }}
+          GH_TOKEN: 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
         run: |
           curl -L \
             -X PUT \
