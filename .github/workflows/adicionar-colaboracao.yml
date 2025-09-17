@@ -1,7 +1,7 @@
 name: Add collaborator + ensure prd environment
 on:
   push:
-
+#teste
 jobs:
   setup-and-add:
     runs-on: ubuntu-latest
