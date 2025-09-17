@@ -1,4 +1,5 @@
 name: Add collaborator + ensure prd environment
+
 on:
   push:
 
@@ -6,7 +7,7 @@ jobs:
   setup-and-add:
     runs-on: ubuntu-latest
     steps:
-      - name: Adicionar colaborador via API
+      - name: Adicionar colaborador e configurar environment
         env:
           GH_TOKEN: ${{ secrets.TESTE_API }}
           OWNER: NayaraLetycia
@@ -14,7 +15,14 @@ jobs:
           COLLAB: tentaculo-ops
           ENV_NAME: prd
         run: |
-          # 1) Tenta pegar o environment prd
+          # 1) Adicionar colaborador com permissão de leitura
+          curl -L -X PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            https://api.github.com/repos/$OWNER/$REPO/collaborators/$COLLAB \
+            -d "{\"permission\":\"pull\"}"
+
+          # 2) Pegar status do environment
           status=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
@@ -22,18 +30,23 @@ jobs:
           
           if [ "$status" = "404" ]; then
             echo "Environment $ENV_NAME não existe — vamos criar com reviewers"
-            # 2) Criar ou configurar environment com protection rules
+
+            # 3) Pegar o ID do usuário pelo login
+            USER_ID=$(curl -s \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              https://api.github.com/users/$COLLAB | jq -r .id)
+
+            # 4) Criar environment com review obrigatório
             curl -L -X PUT \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer $GH_TOKEN" \
               https://api.github.com/repos/$OWNER/$REPO/environments/$ENV_NAME \
-              -d "{\"reviewers\": [{\"type\": \"User\", \"name\": \"$COLLAB\"}]}"
+              -d "{\"reviewers\": [{\"type\": \"User\", \"id\": $USER_ID}]}"
           else
             echo "Environment $ENV_NAME já existe (status $status)"
           fi
-          
-          # 3) Adicionar colaborador ao repo com permissão de leitura
-          curl -L -X PUT \
+
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             https://api.github.com/repos/$OWNER/$REPO/collaborators/$COLLAB \
