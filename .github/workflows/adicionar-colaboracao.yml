@@ -1,5 +1,4 @@
-name: Add collaborator + ensure prd environment with reviewer
-
+name: Add collaborator + ensure prd environment
 on:
   push:
 
@@ -7,10 +6,7 @@ jobs:
   setup-and-add:
     runs-on: ubuntu-latest
     steps:
-      - name: Instalar jq (se necessário)
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Adicionar colaborador e configurar environment
+      - name: Adicionar colaborador via API
         env:
           GH_TOKEN: ${{ secrets.TESTE_API }}
           OWNER: NayaraLetycia
@@ -18,41 +14,26 @@ jobs:
           COLLAB: tentaculo-ops
           ENV_NAME: prd
         run: |
-          # 1) Adicionar colaborador com permissão de leitura
-          curl -L -X PUT \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/$OWNER/$REPO/collaborators/$COLLAB \
-            -d '{"permission":"pull"}'
-
-          # 2) Verificar se environment existe
+          # 1) Tenta pegar o environment prd
           status=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             https://api.github.com/repos/$OWNER/$REPO/environments/$ENV_NAME)
-
+          
           if [ "$status" = "404" ]; then
-            echo "Environment $ENV_NAME não existe — criando..."
+            echo "Environment $ENV_NAME não existe — vamos criar com reviewers"
+            # 2) Criar ou configurar environment com protection rules
             curl -L -X PUT \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer $GH_TOKEN" \
-              https://api.github.com/repos/$OWNER/$REPO/environments/$ENV_NAME
+              https://api.github.com/repos/$OWNER/$REPO/environments/$ENV_NAME \
+              -d "{\"reviewers\": [{\"type\": \"User\", \"name\": \"$COLLAB\"}]}"
           else
             echo "Environment $ENV_NAME já existe (status $status)"
           fi
-
-          # 3) Criar ou atualizar protection rule para reviewers obrigatórios
-          curl -L -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            https://api.github.com/repos/$OWNER/$REPO/environments/$ENV_NAME/deployment_protection_rules \
-            -d "{
-              \"required_reviewers\": [\"$COLLAB\"],
-              \"required_approving_review_count\": 1,
-              \"bypass_actors\": []
-            }"
-
-
+          
+          # 3) Adicionar colaborador ao repo com permissão de leitura
+          curl -L -X PUT \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             https://api.github.com/repos/$OWNER/$REPO/collaborators/$COLLAB \
