@@ -1,8 +1,4 @@
-
 name: Add collaborator + ensure prd environment
-#testando
-name: Add collaborator
-
 on:
   push:
 
