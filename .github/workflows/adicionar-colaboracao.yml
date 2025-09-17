@@ -2,13 +2,14 @@ jobs:
   add-collaborator:
     runs-on: ubuntu-latest
     steps:
-      - name: Adicionar colaborador com GH CLI
+      - name: Adicionar colaborador via API
         env:
           GH_TOKEN: ${{ secrets.TESTE_API }}
         run: |
-          gh api \
-            --method PUT \
+          curl -L \
+            -X PUT \
             -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/NayaraLetycia/gerenciador_albuns/collaborators/tentaculo-ops \
-            -f permission='push'
+            https://api.github.com/repos/NayaraLetycia/gerenciador_albuns/collaborators/tentaculo-ops \
+            -d '{"permission":"push"}'
